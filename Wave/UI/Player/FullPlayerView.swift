@@ -400,7 +400,7 @@ struct FullPlayerView: View {
 
     private var tempoSheet: some View {
         @Bindable var player = player
-        NavigationStack {
+        return NavigationStack {
             Form {
                 Section("Playback speed") {
                     Stepper(
