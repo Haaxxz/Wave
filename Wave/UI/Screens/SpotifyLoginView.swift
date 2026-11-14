@@ -15,6 +15,7 @@ struct SpotifyLoginView: View {
     @State private var likedCount = 0
 
     var body: some View {
+        @Bindable var settings = settings
         Form {
             Section("Your Spotify developer app") {
                 TextField("Client ID", text: $settings.spotifyClientId)

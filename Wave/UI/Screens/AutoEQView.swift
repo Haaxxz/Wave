@@ -21,6 +21,7 @@ struct AutoEQView: View {
     @State private var loadError: String?
 
     var body: some View {
+        @Bindable var settings = settings
         Form {
             Section {
                 Toggle("Enable AutoEQ", isOn: $settings.autoEQEnabled)

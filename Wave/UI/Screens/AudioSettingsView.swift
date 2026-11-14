@@ -7,6 +7,7 @@ struct AudioSettingsView: View {
     @Environment(Player.self) private var player
 
     var body: some View {
+        @Bindable var settings = settings
         Form {
             Section("Quality") {
                 Picker("Audio quality", selection: $settings.audioQuality) {

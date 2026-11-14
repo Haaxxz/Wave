@@ -10,6 +10,7 @@ struct DownloadSettingsView: View {
     @State private var showingDeleteAll = false
 
     var body: some View {
+        @Bindable var settings = settings
         Form {
             Section("Quality") {
                 Picker("Download quality", selection: $settings.downloadQuality) {

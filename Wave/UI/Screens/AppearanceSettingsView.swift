@@ -15,6 +15,7 @@ struct AppearanceSettingsView: View {
     ]
 
     var body: some View {
+        @Bindable var settings = settings
         Form {
             Section("Theme") {
                 Picker("Appearance", selection: $settings.theme) {
