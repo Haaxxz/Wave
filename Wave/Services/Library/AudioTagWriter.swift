@@ -374,7 +374,7 @@ enum AudioTagWriter {
         if let lyricsText, !lyricsText.isEmpty { replacedFields.formUnion(["LYRICS", "UNSYNCEDLYRICS"]) }
         if let year, !year.isEmpty { replacedFields.formUnion(["DATE", "YEAR"]) }
         if artworkData != nil {
-            replacedFields.formUnion(["METADATA_BLOCK_PICTURE", "COVERART", "COVERARTMIME"])
+            replacedFields.formUnion(["METADATA_BLOCK_PICTURE", "COVERART", "COVERARTMIME"]) }
         }
 
         var comments = originalComments.filter {
@@ -583,8 +583,8 @@ enum AudioTagWriter {
         if let album, !album.isEmpty { textItem(key: .commonKeyAlbumName, value: album) }
         if let lyricsText, !lyricsText.isEmpty {
             let item = AVMutableMetadataItem()
-            item.keySpace = .common
-            item.key = AVMetadataKey.commonKeyLyrics as NSCopying & NSObjectProtocol
+            item.keySpace = .iTunes
+            item.key = "©lyr" as NSCopying & NSObjectProtocol
             item.value = lyricsText as NSString
             items.append(item)
         }
