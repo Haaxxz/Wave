@@ -24,8 +24,9 @@ import Foundation
 // `AVAudioEngine`-backed track, so there is exactly one audio engine in the
 // app (the streamed path uses `AVPlayer` instead — see `Player.swift`).
 
-/// The dual-deck engine. Not an actor: AVFoundation node calls are
-/// thread-safe, and all calls from `Player` come from the main actor.
+/// The dual-deck engine. All state is main-actor isolated because it is
+/// managed by `Player` and AVFoundation callbacks are bridged back there.
+@MainActor
 final class AutomixEngine {
     /// How long a crossfade lasts, in seconds.
     var crossfadeDuration: TimeInterval = 8
