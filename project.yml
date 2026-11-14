@@ -1,0 +1,72 @@
+# XcodeGen project for Wave — the iOS clone of LastWave (Android).
+# Generated project (Wave.xcodeproj) is NOT committed; CI and local builds
+# run `xcodegen generate` first. All sources are picked up by directory glob,
+# so new Swift files only need to land in the right folder.
+name: Wave
+options:
+  bundleIdPrefix: app.wave
+  deploymentTarget:
+    iOS: "17.0"
+  createIntermediateGroups: true
+  groupSortPosition: top
+settings:
+  base:
+    SWIFT_VERSION: "6.0"
+    IPHONEOS_DEPLOYMENT_TARGET: "17.0"
+    SWIFT_STRICT_CONCURRENCY: minimal
+    MARKETING_VERSION: "0.1.0"
+    CURRENT_PROJECT_VERSION: "1"
+    ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+    ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
+configs:
+  Debug: debug
+  Release: release
+targets:
+  Wave:
+    type: application
+    platform: iOS
+    sources:
+      - path: Wave
+        excludes:
+          - "**/*.md"
+    info:
+      path: Wave/Info.plist
+    dependencies:
+      - target: WaveWidgets
+    settings:
+      base:
+        PRODUCT_NAME: Wave
+  WaveWidgets:
+    type: app-extension
+    platform: iOS
+    sources:
+      - path: WaveWidgets
+      - path: Wave/Models
+    info:
+      path: WaveWidgets/Info.plist
+    settings:
+      base:
+        PRODUCT_NAME: WaveWidgets
+  WaveTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - path: WaveTests
+    dependencies:
+      - target: Wave
+    settings:
+      base:
+        PRODUCT_NAME: WaveTests
+schemes:
+  Wave:
+    build:
+      targets:
+        Wave: [run, test, profile, analyze, archive]
+        WaveWidgets: [run, test, profile, analyze, archive]
+    test:
+      targets:
+        - WaveTests
+    run:
+      config: Debug
+    archive:
+      config: Release

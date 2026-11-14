@@ -1,0 +1,36 @@
+# Xcode / build products
+build/
+DerivedData/
+*.xcodeproj/
+*.xcworkspace/
+xcuserdata/
+*.xcuserstate
+*.moved-aside
+*.pbxuser
+*.mode1v3
+*.mode2v3
+*.perspectivev3
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Swift Package Manager
+.build/
+.swiftpm/
+
+# CocoaPods (not used by this project, kept for safety)
+Pods/
+Podfile.lock
+
+# Fastlane (not used yet)
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/screenshots/
+fastlane/test_output/
+
+# Local secrets — never commit these
+*.env
+Secrets.xcconfig
+**/Secrets/
