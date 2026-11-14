@@ -374,7 +374,7 @@ enum AudioTagWriter {
         if let lyricsText, !lyricsText.isEmpty { replacedFields.formUnion(["LYRICS", "UNSYNCEDLYRICS"]) }
         if let year, !year.isEmpty { replacedFields.formUnion(["DATE", "YEAR"]) }
         if artworkData != nil {
-            replacedFields.formUnion(["METADATA_BLOCK_PICTURE", "COVERART", "COVERARTMIME"]) }
+            replacedFields.formUnion(["METADATA_BLOCK_PICTURE", "COVERART", "COVERARTMIME"])
         }
 
         var comments = originalComments.filter {
