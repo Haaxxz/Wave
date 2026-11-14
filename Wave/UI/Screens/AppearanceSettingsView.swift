@@ -16,7 +16,7 @@ struct AppearanceSettingsView: View {
 
     var body: some View {
         @Bindable var settings = settings
-        Form {
+        return Form {
             Section("Theme") {
                 Picker("Appearance", selection: $settings.theme) {
                     ForEach(AppTheme.allCases, id: \.self) { theme in

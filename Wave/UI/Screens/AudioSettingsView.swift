@@ -8,7 +8,7 @@ struct AudioSettingsView: View {
 
     var body: some View {
         @Bindable var settings = settings
-        Form {
+        return Form {
             Section("Quality") {
                 Picker("Audio quality", selection: $settings.audioQuality) {
                     ForEach(AudioQuality.allCases, id: \.self) { quality in

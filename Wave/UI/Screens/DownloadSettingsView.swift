@@ -11,7 +11,7 @@ struct DownloadSettingsView: View {
 
     var body: some View {
         @Bindable var settings = settings
-        Form {
+        return Form {
             Section("Quality") {
                 Picker("Download quality", selection: $settings.downloadQuality) {
                     ForEach(AudioQuality.allCases, id: \.self) { quality in

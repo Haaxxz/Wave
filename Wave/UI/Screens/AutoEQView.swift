@@ -22,7 +22,7 @@ struct AutoEQView: View {
 
     var body: some View {
         @Bindable var settings = settings
-        Form {
+        return Form {
             Section {
                 Toggle("Enable AutoEQ", isOn: $settings.autoEQEnabled)
                 Text("When enabled, the selected headphone's correction curve is applied to everything you play, through AVAudioUnitEQ.")

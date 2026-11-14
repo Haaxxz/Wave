@@ -109,7 +109,7 @@ struct SettingsView: View {
 
     private var integrationsSection: some View {
         @Bindable var settings = settings
-        Section("Integrations") {
+        return Section("Integrations") {
             SecureField("Last.fm API key", text: $settings.lastFmApiKey)
                 .textInputAutocapitalization(.never)
                 .autocorrectionDisabled()

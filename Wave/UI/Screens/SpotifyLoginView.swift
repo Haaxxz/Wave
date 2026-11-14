@@ -16,7 +16,7 @@ struct SpotifyLoginView: View {
 
     var body: some View {
         @Bindable var settings = settings
-        Form {
+        return Form {
             Section("Your Spotify developer app") {
                 TextField("Client ID", text: $settings.spotifyClientId)
                     .textInputAutocapitalization(.never)
