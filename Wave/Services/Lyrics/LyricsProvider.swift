@@ -23,7 +23,8 @@ import Foundation
 // without the network.
 
 @Observable
-final class LyricsProvider: LyricsService {
+/// Only @MainActor callers (Player, DownloadManager); unchecked conformance is sound.
+final class LyricsProvider: LyricsService, @unchecked Sendable {
     static let shared = LyricsProvider()
 
     private let session: URLSession
