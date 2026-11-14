@@ -26,7 +26,10 @@ import Foundation
 
 /// The dual-deck engine. Not an actor: AVFoundation node calls are
 /// thread-safe, and all calls from `Player` come from the main actor.
-final class AutomixEngine {
+/// Marked `@unchecked Sendable` on that basis: audio-thread callbacks
+/// (node completion handlers, the end-check timer) only hop back to the
+/// main actor via `Task`, and never touch mutable state off it.
+final class AutomixEngine: @unchecked Sendable {
     /// How long a crossfade lasts, in seconds.
     var crossfadeDuration: TimeInterval = 8
 
