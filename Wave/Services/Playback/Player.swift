@@ -134,12 +134,16 @@ final class Player: PlaybackEngine {
     private let automix = AutomixEngine()
     private let networkMonitor = NWPathMonitor()
 
-    private var positionTimer: Timer?
-    private var sleepTimer: Timer?
-    private var loadTask: Task<Void, Never>?
-    private var lyricsTask: Task<Void, Never>?
-    private var failureSkipTask: Task<Void, Never>?
-    private var crossfadeTask: Task<Void, Never>?
+    // `deinit` is nonisolated and must cancel timers/tasks and remove
+    // observers, so these are `nonisolated(unsafe)`. That is sound here:
+    // `invalidate()`, `cancel()` and `removeObserver(_:)` are all safe to
+    // call from any thread, and every other access happens on the main actor.
+    private nonisolated(unsafe) var positionTimer: Timer?
+    private nonisolated(unsafe) var sleepTimer: Timer?
+    private nonisolated(unsafe) var loadTask: Task<Void, Never>?
+    private nonisolated(unsafe) var lyricsTask: Task<Void, Never>?
+    private nonisolated(unsafe) var failureSkipTask: Task<Void, Never>?
+    private nonisolated(unsafe) var crossfadeTask: Task<Void, Never>?
     private var loadGeneration = 0
     private var networkIsCellular = false
     private var useEnginePath = false
@@ -151,7 +155,7 @@ final class Player: PlaybackEngine {
     private var currentTempFile: URL?
     private var forcedURLForNextLoad: URL?
     private var nowPlayingArtwork: MPMediaItemArtwork?
-    private var notificationTokens: [NSObjectProtocol] = []
+    private nonisolated(unsafe) var notificationTokens: [NSObjectProtocol] = []
 
     init(innerTube: InnerTubeService, lyrics: LyricsService) {
         self.innerTube = innerTube
@@ -159,7 +163,7 @@ final class Player: PlaybackEngine {
 
         automix.audioURLProvider = { [weak self] track in
             guard let self else { throw PlayerError.noTrackLoaded }
-            return try await MainActor.run { try await self.resolveAudioURL(for: track) }
+            return try await self.resolveAudioURL(for: track)
         }
         automix.onTrackFinished = { [weak self] in
             Task { @MainActor [weak self] in
@@ -706,7 +710,7 @@ final class Player: PlaybackEngine {
         failureSkipTask = Task {
             try? await Task.sleep(nanoseconds: 2_000_000_000)
             guard !Task.isCancelled else { return }
-            if self.state == .failed {
+            if case .failed = self.state {
                 self.next()
             }
         }
