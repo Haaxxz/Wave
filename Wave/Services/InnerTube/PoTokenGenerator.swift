@@ -52,7 +52,8 @@ final class PoTokenGenerator: Sendable {
     // MARK: - Visitor data (lock-guarded; readable off the main actor)
 
     private let lock = NSLock()
-    private var _visitorData: String?
+    // Lock-guarded on every access; the compiler cannot see the discipline.
+    private nonisolated(unsafe) var _visitorData: String?
 
     /// The YouTube `visitorData` for this install. Mirrors the contract:
     /// the InnerTube client reads it from here.
