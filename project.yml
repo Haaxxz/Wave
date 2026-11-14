@@ -29,25 +29,28 @@ targets:
       - path: Wave
         excludes:
           - "**/*.md"
-    info:
-      path: Wave/Info.plist
+          - Info.plist
     dependencies:
       - target: WaveWidgets
     settings:
       base:
         PRODUCT_NAME: Wave
+        INFOPLIST_FILE: Wave/Info.plist
+        GENERATE_INFOPLIST_FILE: NO
   WaveWidgets:
     type: app-extension
     platform: iOS
     sources:
       - path: WaveWidgets
+        excludes:
+          - Info.plist
       - path: Wave/Models
-    info:
-      path: WaveWidgets/Info.plist
     settings:
       base:
         PRODUCT_NAME: WaveWidgets
         PRODUCT_BUNDLE_IDENTIFIER: app.wave.Wave.WaveWidgets
+        INFOPLIST_FILE: WaveWidgets/Info.plist
+        GENERATE_INFOPLIST_FILE: NO
   WaveTests:
     type: bundle.unit-test
     platform: iOS
