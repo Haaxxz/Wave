@@ -181,13 +181,13 @@ final class PoTokenGenerator: Sendable {
     /// The session poToken, used as the GVS `pot=` parameter on stream
     /// URLs. Minted once per engine bootstrap and cached until expiry.
     func token() async throws -> String {
-        try await MainActor.run { try await self.sessionToken() }
+        try await self.sessionToken()
     }
 
     /// The per-video player poToken for the `player` request's
     /// `serviceIntegrityDimensions`.
     func token(forVideoId videoId: String) async throws -> String {
-        try await MainActor.run { try await self.playerToken(videoId: videoId) }
+        try await self.playerToken(videoId: videoId)
     }
 
     @MainActor
@@ -447,8 +447,8 @@ final class PoTokenGenerator: Sendable {
             "program": program,
             "globalName": globalName,
             "interpreterJavascript": [
-                "privateDoNotAccessOrElseSafeScriptWrappedValue": interpreterJs ?? NSNull(),
-                "privateDoNotAccessOrElseTrustedResourceUrlWrappedValue": interpreterUrl ?? NSNull(),
+                "privateDoNotAccessOrElseSafeScriptWrappedValue": interpreterJs ?? NSNull() as Any,
+                "privateDoNotAccessOrElseTrustedResourceUrlWrappedValue": interpreterUrl ?? NSNull() as Any,
             ],
         ]
         guard let data = try? JSONSerialization.data(withJSONObject: payload),
@@ -595,7 +595,7 @@ final class PoTokenGenerator: Sendable {
     // MARK: - Timeout helper
 
     @MainActor
-    static func withTimeout<T>(seconds: Double, operation: @escaping @Sendable () async throws -> T) async throws -> T {
+    static func withTimeout<T: Sendable>(seconds: Double, operation: @escaping @Sendable () async throws -> T) async throws -> T {
         try await withThrowingTaskGroup(of: T.self) { group in
             group.addTask { try await operation() }
             group.addTask {
