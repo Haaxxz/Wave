@@ -277,19 +277,31 @@ enum InnerTubeParsing {
     static func directWatchVideoId(in renderer: JSONValue) -> String? {
         if let id = renderer.object("playlistItemData")?.string("videoId") { return id }
         if let id = renderer.object("navigationEndpoint")?.object("watchEndpoint")?.string("videoId") { return id }
-        if let id = (renderer.object("overlay") ?? renderer.object("thumbnailOverlay"))
-            ?.object("musicItemThumbnailOverlayRenderer")
-            ?.object("content")?.object("musicPlayButtonRenderer")
-            ?.object("playNavigationEndpoint")?.object("watchEndpoint")?.string("videoId") {
+
+        if let overlay = renderer.object("overlay") ?? renderer.object("thumbnailOverlay"),
+           let musicItem = overlay.object("musicItemThumbnailOverlayRenderer"),
+           let content = musicItem.object("content"),
+           let playButton = content.object("musicPlayButtonRenderer"),
+           let playEndpoint = playButton.object("playNavigationEndpoint"),
+           let watchEndpoint = playEndpoint.object("watchEndpoint"),
+           let id = watchEndpoint.string("videoId") {
             return id
         }
+
         if let id = renderer.object("onTap")?.object("watchEndpoint")?.string("videoId") { return id }
-        if let id = renderer.array("flexColumns")?.first
-            ?.object("musicResponsiveListItemFlexColumnRenderer")?.object("text")
-            ?.array("runs")?.first
-            ?.object("navigationEndpoint")?.object("watchEndpoint")?.string("videoId") {
+
+        if let columns = renderer.array("flexColumns"),
+           let firstColumn = columns.first,
+           let flexRenderer = firstColumn.object("musicResponsiveListItemFlexColumnRenderer"),
+           let text = flexRenderer.object("text"),
+           let runs = text.array("runs"),
+           let firstRun = runs.first,
+           let navigation = firstRun.object("navigationEndpoint"),
+           let watch = navigation.object("watchEndpoint"),
+           let id = watch.string("videoId") {
             return id
         }
+
         return renderer.object("doubleTapCommand")?.object("watchEndpoint")?.string("videoId")
     }
 
@@ -400,9 +412,20 @@ enum InnerTubeParsing {
     /// `parseTwoRowSong`.
     static func parseTwoRowTrack(from renderer: JSONValue) -> Track? {
         let titleRuns = renderer.object("title")?.array("runs")
-        guard let videoId = directWatchVideoId(in: renderer)
-            ?? titleRuns?.first?.object("navigationEndpoint")?.object("watchEndpoint")?.string("videoId")
-        else { return nil }
+        let videoId: String?
+        if let id = directWatchVideoId(in: renderer) {
+            videoId = id
+        } else if let runs = titleRuns,
+                  let first = runs.first,
+                  let navigation = first.object("navigationEndpoint"),
+                  let endpoint = navigation.object("watchEndpoint"),
+                  let id = endpoint.string("videoId") {
+            videoId = id
+        } else {
+            videoId = nil
+        }
+
+        guard let videoId else { return nil }
         guard let title = titleRuns?.compactMap({ $0.string("text") }).joined().trimmedNonEmpty
             ?? renderer.object("title")?.string("simpleText")?.trimmedNonEmpty
         else { return nil }
@@ -464,8 +487,14 @@ enum InnerTubeParsing {
             ?? renderer.object("navigationEndpoint")?.object("watchEndpoint")?.string("videoId")
         else { return nil }
         guard let title = renderer.object("title")?.text?.trimmedNonEmpty else { return nil }
-        let detailRuns = (renderer.object("longBylineText") ?? renderer.object("shortBylineText"))
-            ?.array("runs") ?? []
+        let detailRuns: [JSONValue]
+        if let long = renderer.object("longBylineText")?.array("runs") {
+            detailRuns = long
+        } else if let short = renderer.object("shortBylineText")?.array("runs") {
+            detailRuns = short
+        } else {
+            detailRuns = []
+        }
         let (artists, album) = artistAndAlbum(from: detailRuns)
         let durationSeconds = renderer.object("lengthText")?.array("runs")
             .flatMap { runs in runs.compactMap { $0.string("text") }.compactMap(parseDuration).first }
@@ -534,22 +563,35 @@ enum InnerTubeParsing {
     /// the client).
     static func parseRadioTracks(in root: JSONValue) -> [Track] {
         var tracks: [Track] = []
-        let panel = root.object("continuationContents")?.object("playlistPanelContinuation")
-            ?? {
-                var panels: [JSONValue] = []
-                root.collectObjects(key: "playlistPanelRenderer", into: &panels)
-                return panels.first
-            }()
-        if let contents = panel?.array("contents") {
-            for element in contents {
-                if let renderer = element.object("playlistPanelVideoRenderer") {
-                    if let track = parsePlaylistPanelTrack(from: renderer) { tracks.append(track) }
-                } else if let renderer = element.object("playlistPanelVideoWrapperRenderer")
-                    ?.object("primaryRenderer")?.object("playlistPanelVideoRenderer") {
-                    if let track = parsePlaylistPanelTrack(from: renderer) { tracks.append(track) }
+
+        if let continuation = root.object("continuationContents")?.object("playlistPanelContinuation") {
+            if let contents = continuation.array("contents") {
+                for element in contents {
+                    if let renderer = element.object("playlistPanelVideoRenderer") {
+                        if let track = parsePlaylistPanelTrack(from: renderer) { tracks.append(track) }
+                    } else if let wrapper = element.object("playlistPanelVideoWrapperRenderer"),
+                              let primary = wrapper.object("primaryRenderer"),
+                              let renderer = primary.object("playlistPanelVideoRenderer") {
+                        if let track = parsePlaylistPanelTrack(from: renderer) { tracks.append(track) }
+                    }
+                }
+            }
+        } else {
+            var panels: [JSONValue] = []
+            root.collectObjects(key: "playlistPanelRenderer", into: &panels)
+            if let panel = panels.first, let contents = panel.array("contents") {
+                for element in contents {
+                    if let renderer = element.object("playlistPanelVideoRenderer") {
+                        if let track = parsePlaylistPanelTrack(from: renderer) { tracks.append(track) }
+                    } else if let wrapper = element.object("playlistPanelVideoWrapperRenderer"),
+                              let primary = wrapper.object("primaryRenderer"),
+                              let renderer = primary.object("playlistPanelVideoRenderer") {
+                        if let track = parsePlaylistPanelTrack(from: renderer) { tracks.append(track) }
+                    }
                 }
             }
         }
+
         if tracks.isEmpty {
             var renderers: [JSONValue] = []
             root.collectObjects(key: "playlistPanelVideoRenderer", into: &renderers)
@@ -652,9 +694,18 @@ enum InnerTubeParsing {
     }
 
     private static func parseTwoRowEntity(from renderer: JSONValue) -> ParsedEntity? {
-        let navigation = renderer.object("navigationEndpoint")?.object("browseEndpoint")
-            ?? renderer.object("title")?.array("runs")?.first
-                ?.object("navigationEndpoint")?.object("browseEndpoint")
+        let navigation: JSONValue?
+        if let browse = renderer.object("navigationEndpoint")?.object("browseEndpoint") {
+            navigation = browse
+        } else if let title = renderer.object("title"),
+                  let runs = title.array("runs"),
+                  let first = runs.first,
+                  let browse = first.object("navigationEndpoint")?.object("browseEndpoint") {
+            navigation = browse
+        } else {
+            navigation = nil
+        }
+
         guard let browseId = navigation?.string("browseId") else { return nil }
         guard let name = renderer.object("title")?.text?.trimmedNonEmpty else { return nil }
         let subtitleRuns = renderer.object("subtitle")?.array("runs") ?? []
@@ -690,12 +741,25 @@ enum InnerTubeParsing {
     }
 
     private static func shelfMoreBrowseId(_ shelf: JSONValue) -> String? {
-        shelf.object("header")?.object("musicCarouselShelfBasicHeaderRenderer")
-            ?.object("moreContentButton")?.object("buttonRenderer")
-            ?.object("navigationEndpoint")?.object("browseEndpoint")?.string("browseId")
-            ?? shelf.object("header")?.object("musicShelfHeaderRenderer")
-                ?.object("moreContentButton")?.object("buttonRenderer")
-                ?.object("navigationEndpoint")?.object("browseEndpoint")?.string("browseId")
+        if let header = shelf.object("header") {
+            if let basic = header.object("musicCarouselShelfBasicHeaderRenderer"),
+               let more = basic.object("moreContentButton"),
+               let button = more.object("buttonRenderer"),
+               let endpoint = button.object("navigationEndpoint"),
+               let browse = endpoint.object("browseEndpoint"),
+               let browseId = browse.string("browseId"), !browseId.isEmpty {
+                return browseId
+            }
+            if let basic = header.object("musicShelfHeaderRenderer"),
+               let more = basic.object("moreContentButton"),
+               let button = more.object("buttonRenderer"),
+               let endpoint = button.object("navigationEndpoint"),
+               let browse = endpoint.object("browseEndpoint"),
+               let browseId = browse.string("browseId"), !browseId.isEmpty {
+                return browseId
+            }
+        }
+        return nil
     }
 
     /// One two-row card as a feed item: a playable song, an album, or a
@@ -704,13 +768,23 @@ enum InnerTubeParsing {
         if let track = parseTwoRowTrack(from: renderer) {
             return .track(track)
         }
-        let navigation = renderer.object("navigationEndpoint")?.object("browseEndpoint")
-            ?? renderer.object("title")?.array("runs")?.first
-                ?.object("navigationEndpoint")?.object("browseEndpoint")
-            ?? renderer.object("thumbnailOverlay")?.object("musicItemThumbnailOverlayRenderer")
-                ?.object("content")?.object("musicPlayButtonRenderer")
-                ?.object("playNavigationEndpoint")?.object("watchEndpoint")
-            ?? renderer.object("onTap")?.object("browseEndpoint")
+
+        let navigation: JSONValue?
+        if let browse = renderer.object("navigationEndpoint")?.object("browseEndpoint") {
+            navigation = browse
+        } else if let title = renderer.object("title"),
+                  let runs = title.array("runs"),
+                  let first = runs.first,
+                  let browse = first.object("navigationEndpoint")?.object("browseEndpoint") {
+            navigation = browse
+        } else if let overlay = renderer.object("thumbnailOverlay")?.object("musicItemThumbnailOverlayRenderer")?.object("content")?.object("musicPlayButtonRenderer")?.object("playNavigationEndpoint")?.object("watchEndpoint") {
+            navigation = overlay
+        } else if let browse = renderer.object("onTap")?.object("browseEndpoint") {
+            navigation = browse
+        } else {
+            navigation = nil
+        }
+
         guard let browseId = navigation?.string("browseId") ?? navigation?.string("playlistId"),
               !browseId.isEmpty, !browseId.hasPrefix("UC") else { return nil }
         guard let title = renderer.object("title")?.text?.trimmedNonEmpty else { return nil }
@@ -776,11 +850,14 @@ enum InnerTubeParsing {
     /// and falls back to collecting every carousel in the response.
     /// Mirrors Android `parseHomeShelves`.
     static func parseFeedSections(in root: JSONValue) -> [FeedSection] {
-        if let contents = root.object("contents")
-            ?.object("singleColumnBrowseResultsRenderer")
-            ?.array("tabs")?.first
-            ?.object("tabRenderer")?.object("content")
-            ?.object("sectionListRenderer")?.array("contents") {
+        if let contentsRoot = root.object("contents"),
+           let browseResults = contentsRoot.object("singleColumnBrowseResultsRenderer"),
+           let tabs = browseResults.array("tabs"),
+           let firstTab = tabs.first,
+           let tabRenderer = firstTab.object("tabRenderer"),
+           let content = tabRenderer.object("content"),
+           let sectionRenderer = content.object("sectionListRenderer"),
+           let contents = sectionRenderer.array("contents") {
             var sections: [FeedSection] = []
             for element in contents {
                 if let carousel = element.object("musicCarouselShelfRenderer"),
@@ -848,14 +925,30 @@ enum InnerTubeParsing {
         for shelf in shelves {
             let heading = shelfHeading(shelf).lowercased()
             guard heading.contains("song") || heading.contains("track") else { continue }
-            let endpoint = shelf.object("bottomEndpoint")?.object("browseEndpoint")
-                ?? shelf.object("bottomText")?.array("runs")?.first
-                    ?.object("navigationEndpoint")?.object("browseEndpoint")
-                ?? shelf.object("title")?.array("runs")?.first
-                    ?.object("navigationEndpoint")?.object("browseEndpoint")
-                ?? shelf.object("header")?.object("musicCarouselShelfBasicHeaderRenderer")
-                    ?.object("moreContentButton")?.object("buttonRenderer")
-                    ?.object("navigationEndpoint")?.object("browseEndpoint")
+
+            let endpoint: JSONValue?
+            if let bottom = shelf.object("bottomEndpoint"),
+               let browse = bottom.object("browseEndpoint") {
+                endpoint = browse
+            } else if let first = shelf.object("bottomText")?.array("runs")?.first,
+                      let nav = first.object("navigationEndpoint"),
+                      let browse = nav.object("browseEndpoint") {
+                endpoint = browse
+            } else if let first = shelf.object("title")?.array("runs")?.first,
+                      let nav = first.object("navigationEndpoint"),
+                      let browse = nav.object("browseEndpoint") {
+                endpoint = browse
+            } else if let header = shelf.object("header"),
+                      let basic = header.object("musicCarouselShelfBasicHeaderRenderer"),
+                      let more = basic.object("moreContentButton"),
+                      let button = more.object("buttonRenderer"),
+                      let nav = button.object("navigationEndpoint"),
+                      let browse = nav.object("browseEndpoint") {
+                endpoint = browse
+            } else {
+                endpoint = nil
+            }
+
             if let browseId = endpoint?.string("browseId"), !browseId.isEmpty {
                 return browseId
             }
@@ -870,10 +963,22 @@ enum InnerTubeParsing {
             ?? root.object("header")?.object("musicImmersiveHeaderRenderer")
             ?? root.object("header")?.object("musicHeaderRenderer")
         let name = header?.object("title")?.text?.trimmedNonEmpty ?? "Artist"
-        let subscribers = header?.object("subscriptionButton")?.object("subscribeButtonRenderer")
-            ?.object("subscriberCountText")?.text?.trimmedNonEmpty
-            ?? header?.object("subtitle")?.text?.trimmedNonEmpty
-            ?? header?.object("straplineTextOne")?.text?.trimmedNonEmpty
+
+        let subscribers: String?
+        if let header {
+            if let subscribe = header.object("subscriptionButton")?.object("subscribeButtonRenderer"),
+               let text = subscribe.object("subscriberCountText")?.text?.trimmedNonEmpty {
+                subscribers = text
+            } else if let subtitle = header.object("subtitle")?.text?.trimmedNonEmpty {
+                subscribers = subtitle
+            } else if let strapline = header.object("straplineTextOne")?.text?.trimmedNonEmpty {
+                subscribers = strapline
+            } else {
+                subscribers = nil
+            }
+        } else {
+            subscribers = nil
+        }
         let thumbs = header.map { thumbnails(in: $0) } ?? []
 
         var topSongs: [Track] = []
@@ -976,11 +1081,18 @@ enum InnerTubeParsing {
     static func parsePlaylist(id: String, in root: JSONValue) -> Playlist {
         var headers: [JSONValue] = []
         root.collectObjects(key: "musicDetailHeaderRenderer", into: &headers)
-        let header = root.object("header")?.object("musicDetailHeaderRenderer")
-            ?? root.object("header")?.object("musicEditablePlaylistDetailHeaderRenderer")
-                ?.object("header")?.object("musicDetailHeaderRenderer")
-            ?? root.object("header")?.object("musicHeaderRenderer")
-            ?? headers.first
+        let header: JSONValue?
+        if let direct = root.object("header")?.object("musicDetailHeaderRenderer") {
+            header = direct
+        } else if let editable = root.object("header")?.object("musicEditablePlaylistDetailHeaderRenderer")?.object("header"),
+                  let detail = editable.object("musicDetailHeaderRenderer") {
+            header = detail
+        } else if let musicHeader = root.object("header")?.object("musicHeaderRenderer") {
+            header = musicHeader
+        } else {
+            header = headers.first
+        }
+
         let title = header?.object("title")?.text?.trimmedNonEmpty ?? "Playlist"
         let subRuns = header?.object("subtitle")?.array("runs") ?? []
         let author = subRuns.first(where: { run in
