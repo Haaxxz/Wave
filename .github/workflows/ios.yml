@@ -63,7 +63,18 @@ jobs:
             -scheme Wave \
             -configuration Debug \
             -destination "platform=iOS Simulator,id=$SIM_ID" \
-            -derivedDataPath build/derived
+            -derivedDataPath build/derived || {
+              echo "=== WaveWidgets.appex Info.plist ==="
+              plutil -p build/derived/Build/Products/Debug-iphonesimulator/Wave.app/PlugIns/WaveWidgets.appex/Info.plist || true
+              echo "=== WaveWidgets.appex contents ==="
+              ls -laR build/derived/Build/Products/Debug-iphonesimulator/Wave.app/PlugIns/WaveWidgets.appex || true
+              echo "=== Try simctl install ==="
+              xcrun simctl boot "$SIM_ID" || true
+              xcrun simctl install "$SIM_ID" build/derived/Build/Products/Debug-iphonesimulator/Wave.app || true
+              echo "=== Simulator install logs ==="
+              xcrun simctl spawn "$SIM_ID" log show --last 3m --predicate 'subsystem CONTAINS[c] "install" OR subsystem CONTAINS[c] "MobileInstallation" OR eventMessage CONTAINS[c] "WaveWidgets" OR eventMessage CONTAINS[c] "extensionDictionary"' --style compact | tail -n 120 || true
+              exit 1
+            }
 
       - name: Package unsigned IPA
         run: |
