@@ -151,7 +151,7 @@ final class JamProtocolTests: XCTestCase {
         XCTAssertEqual(payload.code, "rate_limited")
         XCTAssertEqual(payload.message, "Slow down")
         XCTAssertEqual(payload.retryAfterMs, 5_000)
-        XCTAssertEqual(payload.retryAtMs, 1_700_000_000_500)
+        XCTAssertEqual(payload.retryAtMs, 1_700_000_005_000)
     }
 
     func testTrackInfoPayloadFromTrackRoundTrip() {

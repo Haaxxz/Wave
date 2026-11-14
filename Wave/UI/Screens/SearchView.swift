@@ -31,7 +31,7 @@ struct SearchView: View {
             } else if let errorMessage {
                 Section {
                     ErrorStateView(message: errorMessage) {
-                        Task { await runSearch(query) }
+                        runSearch(query)
                     }
                 }
             } else if hasSearched {

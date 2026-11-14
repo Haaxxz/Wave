@@ -968,25 +968,30 @@ final class Player: PlaybackEngine {
             forName: AVAudioSession.interruptionNotification,
             object: nil, queue: .main
         ) { [weak self] note in
+            let typeValue = note.userInfo?[AVAudioSessionInterruptionTypeKey] as? UInt
+            let optionsValue = note.userInfo?[AVAudioSessionInterruptionOptionKey] as? UInt
             Task { @MainActor [weak self] in
-                self?.handleInterruption(note)
+                self?.handleInterruption(typeValue: typeValue, optionsValue: optionsValue)
             }
         })
         notificationTokens.append(center.addObserver(
             forName: AVAudioSession.routeChangeNotification,
             object: nil, queue: .main
         ) { [weak self] note in
+            let reasonValue = note.userInfo?[AVAudioSessionRouteChangeReasonKey] as? UInt
             Task { @MainActor [weak self] in
-                self?.handleRouteChange(note)
+                self?.handleRouteChange(reasonValue: reasonValue)
             }
         })
         notificationTokens.append(center.addObserver(
             forName: .AVPlayerItemDidPlayToEndTime,
             object: nil, queue: .main
         ) { [weak self] note in
+            let itemID = (note.object as? AVPlayerItem).map(ObjectIdentifier.init)
             Task { @MainActor [weak self] in
                 guard let self, !self.useEnginePath,
-                      note.object as? AVPlayerItem === self.player.currentItem else { return }
+                      let currentItem = self.player.currentItem,
+                      ObjectIdentifier(currentItem) == itemID else { return }
                 self.trackDidFinish()
             }
         })
@@ -994,19 +999,19 @@ final class Player: PlaybackEngine {
             forName: .AVPlayerItemFailedToPlayToEndTime,
             object: nil, queue: .main
         ) { [weak self] note in
+            let itemID = (note.object as? AVPlayerItem).map(ObjectIdentifier.init)
+            let error = note.userInfo?[AVPlayerItemFailedToPlayToEndTimeErrorKey] as? any Error
             Task { @MainActor [weak self] in
                 guard let self, !self.useEnginePath,
-                      note.object as? AVPlayerItem === self.player.currentItem else { return }
-                let error = (note.userInfo?[AVPlayerItemFailedToPlayToEndTimeErrorKey] as? Error)
-                    ?? PlayerError.noPlayableFormat
-                self.failCurrentTrack(error)
+                      let currentItem = self.player.currentItem,
+                      ObjectIdentifier(currentItem) == itemID else { return }
+                self.failCurrentTrack(error ?? PlayerError.noPlayableFormat)
             }
         })
     }
 
-    private func handleInterruption(_ note: Notification) {
-        guard let userInfo = note.userInfo,
-              let typeValue = userInfo[AVAudioSessionInterruptionTypeKey] as? UInt,
+    private func handleInterruption(typeValue: UInt?, optionsValue: UInt?) {
+        guard let typeValue,
               let type = AVAudioSession.InterruptionType(rawValue: typeValue) else { return }
         switch type {
         case .began:
@@ -1015,8 +1020,7 @@ final class Player: PlaybackEngine {
                 pausePlayback()
             }
         case .ended:
-            let optionsValue = userInfo[AVAudioSessionInterruptionOptionKey] as? UInt ?? 0
-            let options = AVAudioSession.InterruptionOptions(rawValue: optionsValue)
+            let options = AVAudioSession.InterruptionOptions(rawValue: optionsValue ?? 0)
             if options.contains(.shouldResume), wasPlayingBeforeInterruption {
                 resumePlayback()
             }
@@ -1026,9 +1030,8 @@ final class Player: PlaybackEngine {
         }
     }
 
-    private func handleRouteChange(_ note: Notification) {
-        guard let userInfo = note.userInfo,
-              let reasonValue = userInfo[AVAudioSessionRouteChangeReasonKey] as? UInt,
+    private func handleRouteChange(reasonValue: UInt?) {
+        guard let reasonValue,
               let reason = AVAudioSession.RouteChangeReason(rawValue: reasonValue) else { return }
         // Headphones unplugged: pause rather than blasting from the speaker.
         if reason == .oldDeviceUnavailable, state == .playing {

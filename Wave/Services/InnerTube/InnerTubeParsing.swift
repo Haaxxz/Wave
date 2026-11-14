@@ -814,8 +814,6 @@ enum InnerTubeParsing {
     /// `parseCarouselShelf`.
     static func parseCarouselShelf(_ renderer: JSONValue) -> FeedSection? {
         guard let title = shelfHeading(renderer).trimmedNonEmpty else { return nil }
-        let subtitle = (renderer.object("header")?.object("musicCarouselShelfBasicHeaderRenderer")?.object("strapline")
-            ?? renderer.object("header")?.object("musicCarouselShelfBasicHeaderRenderer")?.object("subtitle"))?.text
         guard let contents = renderer.array("contents") else { return nil }
         var items: [FeedItem] = []
         for element in contents {
