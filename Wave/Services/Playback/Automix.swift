@@ -255,7 +255,9 @@ final class AutomixEngine {
 
         isCrossfading = true
         incoming.volume = 0
-        incoming.scheduleFile(nextFile, at: nil)
+        incoming.scheduleFile(nextFile, at: nil) { [weak self] in
+            self?.fileDidFinish()
+        }
         incoming.play()
 
         // The new track is now the reference for position/duration.
