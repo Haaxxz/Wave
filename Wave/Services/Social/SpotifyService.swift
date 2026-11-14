@@ -43,7 +43,8 @@ enum SpotifyError: Error, LocalizedError {
     }
 }
 
-final class SpotifyService {
+/// Only @MainActor callers (SwiftUI views); unchecked conformance is sound.
+final class SpotifyService: @unchecked Sendable {
     static let shared = SpotifyService()
 
     private static let tokenURL = URL(string: "https://accounts.spotify.com/api/token")!
@@ -241,7 +242,7 @@ final class SpotifyService {
 
     /// Pure parser: embed HTML in, playlist rows out. Never throws — an
     /// unreadable page yields an empty row list.
-    func parseEmbedPage(html: String, fallbackTitle: String = "Spotify Playlist") -> FetchedPlaylist {
+    private func parseEmbedPage(html: String, fallbackTitle: String = "Spotify Playlist") -> FetchedPlaylist {
         let pattern = "<script[^>]*\\bid=[\"']__NEXT_DATA__[\"'][^>]*>(.*?)</script>"
         guard
             let regex = try? NSRegularExpression(pattern: pattern, options: [.dotMatchesLineSeparators]),

@@ -21,7 +21,8 @@ import Foundation
 // failure queues the scrobble (max 200, persisted in UserDefaults) and it is
 // retried on the next write instead of being dropped.
 
-final class LastFmService {
+/// Only @MainActor callers (Player, StatsView); unchecked conformance is sound.
+final class LastFmService: @unchecked Sendable {
     static let shared = LastFmService()
 
     private static let baseURL = URL(string: "https://ws.audioscrobbler.com/2.0/")!
