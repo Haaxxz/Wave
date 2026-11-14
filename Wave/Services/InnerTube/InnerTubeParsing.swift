@@ -445,8 +445,7 @@ enum InnerTubeParsing {
     /// `parseCardShelfSong`.
     static func parseCardShelfTrack(from renderer: JSONValue) -> Track? {
         guard let videoId = directWatchVideoId(in: renderer)
-            ?? renderer.object("title")?.array("runs")?.first
-                ?.object("navigationEndpoint")?.object("watchEndpoint")?.string("videoId")
+            ?? renderer.object("title")?.array("runs")?.first?.object("navigationEndpoint")?.object("watchEndpoint")?.string("videoId")
             ?? renderer.object("onTap")?.object("watchEndpoint")?.string("videoId")
             ?? renderer.findString("videoId")
         else { return nil }
