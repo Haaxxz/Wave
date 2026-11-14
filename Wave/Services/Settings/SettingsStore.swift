@@ -26,7 +26,9 @@ enum AppTheme: String, Sendable, CaseIterable {
 /// The app-wide settings store. Single instance: `SettingsStore.shared`.
 /// Backed by UserDefaults; every property persists on change.
 @Observable
-final class SettingsStore {
+/// All access is main-actor-confined in practice (SwiftUI views and @MainActor
+/// services), so the unchecked conformance is sound here.
+final class SettingsStore: @unchecked Sendable {
     static let shared = SettingsStore()
 
     private let defaults: UserDefaults
