@@ -7,10 +7,10 @@ import Foundation
 /// returns `nil` when nothing is found. No API keys are needed for the
 /// providers in the default chain.
 ///
-/// The protocol deliberately does NOT require `Sendable`: the only
-/// consumers are `@MainActor` (the Player and the DownloadManager), and
-/// requiring it would force the provider into an actor or an unchecked
-/// conformance for no benefit.
-protocol LyricsService {
+/// The protocol requires `Sendable`: callers `await` the lookup from the
+/// main actor, which sends the receiver across to the provider, and Swift 6
+/// rejects a non-Sendable receiver there. `LyricsProvider` meets this with
+/// an unchecked conformance (its only callers are the main actor).
+protocol LyricsService: Sendable {
     func lyrics(for track: Track) async -> Lyrics?
 }
