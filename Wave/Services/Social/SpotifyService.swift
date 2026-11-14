@@ -329,7 +329,7 @@ final class SpotifyService: @unchecked Sendable {
     /// InnerTube search ("title artist", falling back to the title alone).
     /// Static so the matching task group does not capture the service.
     private static func matchRow(_ row: SpotifyRow) async -> Track? {
-        let innerTube = InnerTubeClient.shared
+        let innerTube = await InnerTubeClient.shared
         if let results = try? await innerTube.search(query: "\(row.title) \(row.artist)"),
            let first = results.songs.first {
             return first
