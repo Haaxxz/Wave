@@ -582,9 +582,11 @@ enum AudioTagWriter {
         if !artist.isEmpty { textItem(key: .commonKeyArtist, value: artist) }
         if let album, !album.isEmpty { textItem(key: .commonKeyAlbumName, value: album) }
         if let lyricsText, !lyricsText.isEmpty {
+            // No common-key lyrics exists; M4A stores lyrics in the iTunes
+            // key space ("©lyr" atom).
             let item = AVMutableMetadataItem()
             item.keySpace = .iTunes
-            item.key = "©lyr" as NSCopying & NSObjectProtocol
+            item.key = AVMetadataKey.iTunesMetadataKeyLyrics as NSCopying & NSObjectProtocol
             item.value = lyricsText as NSString
             items.append(item)
         }
