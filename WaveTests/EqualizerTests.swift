@@ -160,9 +160,13 @@ final class EqualizerTests: XCTestCase {
         XCTAssertEqual(settings.gains.count, 15)
         // Sampled exactly at 1 kHz (band index 8) the delta is +6.
         XCTAssertEqual(settings.gains[8], 6, accuracy: 0.001)
-        // At the ends of the curve the delta is 0.
-        XCTAssertEqual(settings.gains[0], 0, accuracy: 0.001)
-        XCTAssertEqual(settings.gains[14], 0, accuracy: 0.001)
+        // Band ends (25 Hz and 16 kHz) sit inside the 20 Hz..20 kHz curve,
+        // so they log-interpolate between 0 dB at the curve ends and +6 dB at 1 kHz.
+        XCTAssertEqual(settings.gains[0], 6 * log(25.0 / 20.0) / log(1000.0 / 20.0), accuracy: 0.001)
+        XCTAssertEqual(settings.gains[14], 6 * log(20000.0 / 16000.0) / log(20000.0 / 1000.0), accuracy: 0.001)
+        // At and beyond the curve's actual endpoints the delta clamps to 0.
+        XCTAssertEqual(library.sampleDelta(target.deltaOverEar, at: 20), 0, accuracy: 0.001)
+        XCTAssertEqual(library.sampleDelta(target.deltaOverEar, at: 20000), 0, accuracy: 0.001)
     }
 
     func testBundledAutoEQFileLoads() {

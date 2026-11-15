@@ -17,7 +17,7 @@ enum JSONValue: Sendable {
     case null
 
     init(data: Data) throws {
-        let raw = try JSONSerialization.jsonObject(with: data, options: [])
+        let raw = try JSONSerialization.jsonObject(with: data, options: [.fragmentsAllowed])
         self.init(raw)
     }
 
